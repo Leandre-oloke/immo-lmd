@@ -91,26 +91,3 @@ class LogementViewModel with ChangeNotifier {
 
 
 
-
-// import 'package:flutter/material.dart';
-// import '../services/firebase_service.dart';
-// import '../models/logement_model.dart';
-
-// class LogementViewModel extends ChangeNotifier {
-//   final FirebaseService _service = FirebaseService();
-//   List<LogementModel> logements = [];
-//   bool isLoading = false;
-
-//   Future<void> loadLogements() async {
-//     isLoading = true;
-//     notifyListeners();
-//     logements = await _service.getLogements();
-//     isLoading = false;
-//     notifyListeners();
-//   }
-
-//   Future<void> addLogement(LogementModel logement) async {
-//     await _service.addLogement(logement);
-//     await loadLogements();
-//   }
-// }

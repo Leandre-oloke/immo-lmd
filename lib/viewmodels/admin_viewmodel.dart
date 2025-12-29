@@ -318,38 +318,3 @@ class AdminViewModel extends ChangeNotifier {
 }
 
 
-
-
-
-// import 'package:flutter/material.dart';
-// import '../repositories/admin_repository.dart';
-// import '../models/utilisateur_model.dart';
-
-// /// ViewModel pour gérer les statistiques de l'admin
-// class AdminViewModel extends ChangeNotifier {
-//   final AdminRepository _repository = AdminRepository();
-
-//   int totalUsers = 0;
-//   int totalLogements = 0;
-//   int totalMessages = 0;
-
-//   bool _isLoading = false;
-//   bool get isLoading => _isLoading;
-
-//   /// Charge les statistiques depuis le repository
-//   Future<void> loadStatistics() async {
-//     _setLoading(true);
-
-//     totalUsers = await _repository.getTotalUsers();
-//     totalLogements = await _repository.getTotalLogements();
-//     //totalMessages = await _repository.getTotalMessages(); //
-
-//     _setLoading(false);
-//   }
-
-//   /// Méthode interne pour gérer l'état de chargement
-//   void _setLoading(bool value) {
-//     _isLoading = value;
-//     notifyListeners();
-//   }
-// }
