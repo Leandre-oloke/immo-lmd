@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "326120873688",
+    "project_id": "immo-lmd",
+    "storage_bucket": "immo-lmd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:326120873688:android:454f8a10366b812c7e01ad",
+        "android_client_info": {
+          "package_name": "com.example.app_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "326120873688-sbqvnq8n1scq79e5fhnk381oi7eoc7vv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2m4Cgp5WcjghgLd5RTkosdqT-qpFCSXM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "326120873688-sbqvnq8n1scq79e5fhnk381oi7eoc7vv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
