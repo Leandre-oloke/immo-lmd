@@ -87,6 +87,7 @@ class AdminViewModel extends ChangeNotifier {
       
     } catch (e) {
       _errorMessage = 'Erreur lors du chargement des statistiques: $e';
+      debugPrint('❌ Erreur loadStatistics: $e');
     } finally {
       _setLoading(false);
     }
@@ -98,7 +99,9 @@ class AdminViewModel extends ChangeNotifier {
     _errorMessage = null;
     
     try {
+      debugPrint('🔄 Chargement de tous les utilisateurs...');
       _allUsers = await _repository.getAllUsers();
+      debugPrint('✅ ${_allUsers.length} utilisateurs chargés');
       
       // Filtrer les utilisateurs récents (7 derniers jours)
       final sevenDaysAgo = DateTime.now().subtract(const Duration(days: 7));
@@ -108,6 +111,7 @@ class AdminViewModel extends ChangeNotifier {
       
     } catch (e) {
       _errorMessage = 'Erreur lors du chargement des utilisateurs: $e';
+      debugPrint('❌ Erreur loadAllUsers: $e');
     } finally {
       _setLoading(false);
     }
@@ -129,6 +133,7 @@ class AdminViewModel extends ChangeNotifier {
       
     } catch (e) {
       _errorMessage = 'Erreur lors du chargement des logements: $e';
+      debugPrint('❌ Erreur loadAllLogements: $e');
     } finally {
       _setLoading(false);
     }
@@ -136,27 +141,37 @@ class AdminViewModel extends ChangeNotifier {
 
   /// Met à jour le rôle d'un utilisateur
   Future<bool> updateUserRole(String userId, String newRole) async {
-    _setLoading(true);
+    debugPrint('🔄 AdminViewModel: Début updateUserRole');
+    debugPrint('📋 User ID: $userId');
+    debugPrint('📋 Nouveau rôle: $newRole');
+    
     _errorMessage = null;
     
     try {
+      // Appeler le repository pour mettre à jour dans Firebase
+      debugPrint('🔄 Appel du repository...');
       final success = await _repository.updateUserRole(userId, newRole);
+      debugPrint('✅ Repository retourné: $success');
       
       if (success) {
-        // Mettre à jour la liste locale
-        final index = _allUsers.indexWhere((user) => user.id == userId);
-        if (index != -1) {
-          _allUsers[index] = _allUsers[index].copyWith(role: newRole);
-          notifyListeners();
-        }
+        // Recharger tous les utilisateurs pour avoir les données à jour
+        debugPrint('🔄 Rechargement de la liste des utilisateurs...');
+        await loadAllUsers();
+        debugPrint('✅ Liste des utilisateurs rechargée');
+        
+        // Recharger aussi les statistiques
+        await loadStatistics();
+      } else {
+        _errorMessage = 'La mise à jour a échoué dans le repository';
+        debugPrint('❌ Échec dans le repository');
       }
       
       return success;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _errorMessage = 'Erreur lors de la mise à jour du rôle: $e';
+      debugPrint('❌ ERREUR updateUserRole: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       return false;
-    } finally {
-      _setLoading(false);
     }
   }
 
@@ -179,6 +194,7 @@ class AdminViewModel extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Erreur lors de la suppression: $e';
+      debugPrint('❌ Erreur deleteUser: $e');
       return false;
     } finally {
       _setLoading(false);
@@ -204,6 +220,7 @@ class AdminViewModel extends ChangeNotifier {
       return success;
     } catch (e) {
       _errorMessage = 'Erreur lors de la suppression du logement: $e';
+      debugPrint('❌ Erreur deleteLogement: $e');
       return false;
     } finally {
       _setLoading(false);
@@ -219,27 +236,15 @@ class AdminViewModel extends ChangeNotifier {
       final success = await _repository.updateLogementStatus(logementId, isActive);
       
       if (success) {
-        // Mettre à jour la liste locale
-        final index = _allLogements.indexWhere((logement) => logement.id == logementId);
-        if (index != -1) {
-          _allLogements[index] = _allLogements[index].copyWith(disponible: isActive);
-          
-          // Mettre à jour les compteurs
-          if (isActive) {
-            _activeLogements++;
-            _inactiveLogements--;
-          } else {
-            _activeLogements--;
-            _inactiveLogements++;
-          }
-          
-          notifyListeners();
-        }
+        // Recharger la liste
+        await loadAllLogements();
+        await loadStatistics();
       }
       
       return success;
     } catch (e) {
       _errorMessage = 'Erreur lors du changement de statut: $e';
+      debugPrint('❌ Erreur toggleLogementStatus: $e');
       return false;
     } finally {
       _setLoading(false);
@@ -252,6 +257,7 @@ class AdminViewModel extends ChangeNotifier {
       return await _repository.getRecentActivities();
     } catch (e) {
       _errorMessage = 'Erreur lors du chargement des activités: $e';
+      debugPrint('❌ Erreur getRecentActivities: $e');
       return {};
     }
   }
@@ -316,5 +322,6 @@ class AdminViewModel extends ChangeNotifier {
     return data;
   }
 }
+
 
 

@@ -136,133 +136,97 @@ class OwnerViewModel extends ChangeNotifier {
   }
   
   /// Méthode pour ajouter un logement avec photos
-  // Future<bool> addLogementWithPhotos(
-  //   Logement logement, 
-  //   List<XFile> images
-  // ) async {
-  //   _setLoading(true);
-  //   _errorMessage = null;
+  Future<bool> addLogementWithPhotos(
+    Logement logement, 
+    List<XFile> images
+  ) async {
+    _setLoading(true);
+    _errorMessage = null;
     
-  //   try {
-  //     // Upload des images si fournies
-  //     if (images.isNotEmpty) {
-  //       print("📸 Upload de ${images.length} photo(s)...");
-  //       final photoUrls = await _imageService.uploadMultipleImages(
-  //         images, 
-  //         logement.id
-  //       );
-  //       logement = logement.copyWith(photos: photoUrls);
-  //       print("✅ Photos uploadées: ${photoUrls.length} url(s)");
-  //     }
-      
-  //     // Ajouter le logement
-  //     await _repository.addLogement(logement);
-      
-  //     // Ajouter à la liste locale
-  //     _myLogements.add(logement);
-  //     if (logement.disponible) {
-  //       _availableLogements.add(logement);
-  //     } else {
-  //       _occupiedLogements.add(logement);
-  //     }
-      
-  //     // Recalculer les statistiques
-  //     _calculateOwnerStats();
-      
-  //     _setLoading(false);
-  //     return true;
-  //   } catch (e) {
-  //     _errorMessage = 'Erreur ajout logement: $e';
-  //     _setLoading(false);
-  //     return false;
-  //   }
-  // }
-  /// Méthode pour ajouter un logement avec photos - VERSION CORRIGÉE
-Future<bool> addLogementWithPhotos(
-  Logement logement, 
-  List<XFile> images
-) async {
-  _setLoading(true);
-  _errorMessage = null;
-  
-  print('🔄 addLogementWithPhotos() démarré');
-  print('   ID Logement: ${logement.id}');
-  print('   Images reçues: ${images.length}');
-  
-  try {
-    // Upload des images si fournies
-    if (images.isNotEmpty) {
-      print("📸 Début upload de ${images.length} photo(s)...");
-      
-      try {
-        final photoUrls = await _imageService.uploadMultipleImages(
-          images, 
-          logement.id
-        );
+    print('🔄 addLogementWithPhotos() démarré');
+    print('   ID Logement: ${logement.id}');
+    print('   Images reçues: ${images.length}');
+    
+    try {
+      // Upload des images si fournies
+      if (images.isNotEmpty) {
+        print("📸 Début upload de ${images.length} photo(s)...");
         
-        print("✅ Photos uploadées: ${photoUrls.length} url(s)");
-        
-        // Vérifier qu'on a au moins une URL
-        if (photoUrls.isEmpty) {
-          print("⚠️ Aucune URL d'image obtenue, utilisation d'une image par défaut");
-          // Option: Ajouter une URL d'image par défaut
+        try {
+          // CORRECTION : Convertir XFile en File d'abord
+          List<String> photoUrls = [];
+          for (XFile xfile in images) {
+            // CORRECTION : Ajouter les paramètres requis
+            String? url = await _imageService.uploadSingleImage(
+              xfile,
+              userId: logement.proprietaireId, // AJOUTE CE PARAMÈTRE
+              folder: 'logements', // AJOUTE CE PARAMÈTRE
+            );
+            if (url != null) {
+              photoUrls.add(url);
+            }
+          }
+          
+          print("✅ Photos uploadées: ${photoUrls.length} url(s)");
+          
+          // Vérifier qu'on a au moins une URL
+          if (photoUrls.isEmpty) {
+            print("⚠️ Aucune URL d'image obtenue, utilisation d'une image par défaut");
+            logement = logement.copyWith(
+              images: ["https://picsum.photos/seed/${logement.id}/600/400"]
+            );
+          } else {
+            logement = logement.copyWith(images: photoUrls);
+          }
+        } catch (e) {
+          print("❌ Erreur pendant upload: $e");
+          // Continuer sans photos plutôt que d'échouer complètement
           logement = logement.copyWith(
-            photos: ["https://picsum.photos/seed/${logement.id}/600/400"]
+            images: ["https://picsum.photos/seed/${logement.id}/600/400"]
           );
-        } else {
-          logement = logement.copyWith(photos: photoUrls);
         }
-      } catch (e) {
-        print("❌ Erreur pendant uploadMultipleImages: $e");
-        // Continuer sans photos plutôt que d'échouer complètement
+      } else {
+        print("ℹ️ Aucune image fournie, ajout image par défaut");
         logement = logement.copyWith(
-          photos: ["https://picsum.photos/seed/${logement.id}/600/400"]
+          images: ["https://picsum.photos/seed/${logement.id}/600/400"]
         );
       }
-    } else {
-      print("ℹ️ Aucune image fournie, ajout image par défaut");
-      logement = logement.copyWith(
-        photos: ["https://picsum.photos/seed/${logement.id}/600/400"]
-      );
+      
+      print("📝 Ajout du logement à Firestore...");
+      
+      // Ajouter le logement à Firestore
+      await _repository.addLogement(logement);
+      
+      // Ajouter à la liste locale
+      _myLogements.add(logement);
+      if (logement.disponible) {
+        _availableLogements.add(logement);
+      } else {
+        _occupiedLogements.add(logement);
+      }
+      
+      // Recalculer les statistiques
+      _calculateOwnerStats();
+      
+      // CRITIQUE: Notifier les listeners que l'état a changé
+      _setLoading(false);
+      notifyListeners();
+      
+      print("✅ Logement ajouté avec succès!");
+      return true;
+      
+    } catch (e, stackTrace) {
+      print("❌ ERREUR dans addLogementWithPhotos:");
+      print("   Type: ${e.runtimeType}");
+      print("   Message: $e");
+      print("   StackTrace: $stackTrace");
+      
+      _errorMessage = 'Erreur ajout logement: $e';
+      _setLoading(false);
+      notifyListeners();
+      return false;
     }
-    
-    print("📝 Ajout du logement à Firestore...");
-    
-    // Ajouter le logement à Firestore
-    await _repository.addLogement(logement);
-    
-    // Ajouter à la liste locale
-    _myLogements.add(logement);
-    if (logement.disponible) {
-      _availableLogements.add(logement);
-    } else {
-      _occupiedLogements.add(logement);
-    }
-    
-    // Recalculer les statistiques
-    _calculateOwnerStats();
-    
-    // CRITIQUE: Notifier les listeners que l'état a changé
-    _setLoading(false);
-    notifyListeners();
-    
-    print("✅ Logement ajouté avec succès!");
-    return true;
-    
-  } catch (e, stackTrace) {
-    print("❌ ERREUR dans addLogementWithPhotos:");
-    print("   Type: ${e.runtimeType}");
-    print("   Message: $e");
-    print("   StackTrace: $stackTrace");
-    
-    _errorMessage = 'Erreur ajout logement: $e';
-    _setLoading(false);
-    notifyListeners();
-    return false;
   }
-}
-
-
 
   /// Méthode pour ajouter des photos à un logement existant
   Future<bool> addPhotosToLogement(
@@ -286,14 +250,26 @@ Future<bool> addLogementWithPhotos(
       // Uploader les nouvelles images
       if (images.isNotEmpty) {
         print("📸 Ajout de ${images.length} photo(s)...");
-        final newPhotoUrls = await _imageService.uploadMultipleImages(
-          images, 
-          logementId
-        );
+        
+        // CORRECTION : Uploader les images une par une
+        List<String> newPhotoUrls = [];
+        for (XFile xfile in images) {
+          // CORRECTION : Ajouter les paramètres requis
+          String? url = await _imageService.uploadSingleImage(
+            xfile,
+            userId: logement.proprietaireId, // AJOUTE CE PARAMÈTRE
+            folder: 'logements', // AJOUTE CE PARAMÈTRE
+          );
+          if (url != null) {
+            newPhotoUrls.add(url);
+          }
+        }
         
         // Fusionner avec les anciennes photos
-        final allPhotos = [...logement.photos, ...newPhotoUrls];
-        final updatedLogement = logement.copyWith(photos: allPhotos);
+        List<String> allPhotos = List<String>.from(logement.images)
+          ..addAll(newPhotoUrls);
+        
+        final updatedLogement = logement.copyWith(images: allPhotos);
         
         // Mettre à jour dans Firestore
         await _repository.updateLogement(updatedLogement);
@@ -341,13 +317,13 @@ Future<bool> addLogementWithPhotos(
       final logement = _myLogements[index];
       
       // Supprimer la photo du stockage
-      await _imageService.deleteImage(photoUrl);
+      //await _imageService.deleteImage(photoUrl);
       
       // Supprimer de la liste des photos
-      final updatedPhotos = List<String>.from(logement.photos)
+      final updatedPhotos = List<String>.from(logement.images)
         ..remove(photoUrl);
       
-      final updatedLogement = logement.copyWith(photos: updatedPhotos);
+      final updatedLogement = logement.copyWith(images: updatedPhotos);
       
       // Mettre à jour dans Firestore
       await _repository.updateLogement(updatedLogement);
@@ -527,18 +503,16 @@ Future<bool> addLogementWithPhotos(
 
 
 
-
-
-
-
 // import 'package:flutter/material.dart';
+// import 'package:image_picker/image_picker.dart';
 // import '../repositories/logement_repository.dart';
 // import '../models/logement_model.dart';
-
+// import '../services/image_service.dart';
 
 // /// ViewModel pour gérer les fonctionnalités spécifiques aux propriétaires
 // class OwnerViewModel extends ChangeNotifier {
 //   final LogementRepository _repository = LogementRepository();
+//   final ImageService _imageService = ImageService();
   
 //   // États
 //   List<Logement> _myLogements = [];
@@ -661,6 +635,246 @@ Future<bool> addLogementWithPhotos(
 //       return true;
 //     } catch (e) {
 //       _errorMessage = 'Erreur ajout logement: $e';
+//       _setLoading(false);
+//       return false;
+//     }
+//   }
+  
+//   /// Méthode pour ajouter un logement avec photos
+//   // Future<bool> addLogementWithPhotos(
+//   //   Logement logement, 
+//   //   List<XFile> images
+//   // ) async {
+//   //   _setLoading(true);
+//   //   _errorMessage = null;
+    
+//   //   try {
+//   //     // Upload des images si fournies
+//   //     if (images.isNotEmpty) {
+//   //       print("📸 Upload de ${images.length} photo(s)...");
+//   //       final photoUrls = await _imageService.uploadMultipleImages(
+//   //         images, 
+//   //         logement.id
+//   //       );
+//   //       logement = logement.copyWith(photos: photoUrls);
+//   //       print("✅ Photos uploadées: ${photoUrls.length} url(s)");
+//   //     }
+      
+//   //     // Ajouter le logement
+//   //     await _repository.addLogement(logement);
+      
+//   //     // Ajouter à la liste locale
+//   //     _myLogements.add(logement);
+//   //     if (logement.disponible) {
+//   //       _availableLogements.add(logement);
+//   //     } else {
+//   //       _occupiedLogements.add(logement);
+//   //     }
+      
+//   //     // Recalculer les statistiques
+//   //     _calculateOwnerStats();
+      
+//   //     _setLoading(false);
+//   //     return true;
+//   //   } catch (e) {
+//   //     _errorMessage = 'Erreur ajout logement: $e';
+//   //     _setLoading(false);
+//   //     return false;
+//   //   }
+//   // }
+//   /// Méthode pour ajouter un logement avec photos - VERSION CORRIGÉE
+// Future<bool> addLogementWithPhotos(
+//   Logement logement, 
+//   List<XFile> images
+// ) async {
+//   _setLoading(true);
+//   _errorMessage = null;
+  
+//   print('🔄 addLogementWithPhotos() démarré');
+//   print('   ID Logement: ${logement.id}');
+//   print('   Images reçues: ${images.length}');
+  
+//   try {
+//     // Upload des images si fournies
+//     if (images.isNotEmpty) {
+//       print("📸 Début upload de ${images.length} photo(s)...");
+      
+//       try {
+//         final photoUrls = await _imageService.uploadMultipleImages(
+//           images, 
+//           logement.id
+//         );
+        
+//         print("✅ Photos uploadées: ${photoUrls.length} url(s)");
+        
+//         // Vérifier qu'on a au moins une URL
+//         if (photoUrls.isEmpty) {
+//           print("⚠️ Aucune URL d'image obtenue, utilisation d'une image par défaut");
+//           // Option: Ajouter une URL d'image par défaut
+//           logement = logement.copyWith(
+//             photos: ["https://picsum.photos/seed/${logement.id}/600/400"]
+//           );
+//         } else {
+//           logement = logement.copyWith(photos: photoUrls);
+//         }
+//       } catch (e) {
+//         print("❌ Erreur pendant uploadMultipleImages: $e");
+//         // Continuer sans photos plutôt que d'échouer complètement
+//         logement = logement.copyWith(
+//           photos: ["https://picsum.photos/seed/${logement.id}/600/400"]
+//         );
+//       }
+//     } else {
+//       print("ℹ️ Aucune image fournie, ajout image par défaut");
+//       logement = logement.copyWith(
+//         photos: ["https://picsum.photos/seed/${logement.id}/600/400"]
+//       );
+//     }
+    
+//     print("📝 Ajout du logement à Firestore...");
+    
+//     // Ajouter le logement à Firestore
+//     await _repository.addLogement(logement);
+    
+//     // Ajouter à la liste locale
+//     _myLogements.add(logement);
+//     if (logement.disponible) {
+//       _availableLogements.add(logement);
+//     } else {
+//       _occupiedLogements.add(logement);
+//     }
+    
+//     // Recalculer les statistiques
+//     _calculateOwnerStats();
+    
+//     // CRITIQUE: Notifier les listeners que l'état a changé
+//     _setLoading(false);
+//     notifyListeners();
+    
+//     print("✅ Logement ajouté avec succès!");
+//     return true;
+    
+//   } catch (e, stackTrace) {
+//     print("❌ ERREUR dans addLogementWithPhotos:");
+//     print("   Type: ${e.runtimeType}");
+//     print("   Message: $e");
+//     print("   StackTrace: $stackTrace");
+    
+//     _errorMessage = 'Erreur ajout logement: $e';
+//     _setLoading(false);
+//     notifyListeners();
+//     return false;
+//   }
+// }
+
+
+
+//   /// Méthode pour ajouter des photos à un logement existant
+//   Future<bool> addPhotosToLogement(
+//     String logementId, 
+//     List<XFile> images
+//   ) async {
+//     _setLoading(true);
+//     _errorMessage = null;
+    
+//     try {
+//       // Trouver le logement
+//       final index = _myLogements.indexWhere((logement) => logement.id == logementId);
+//       if (index == -1) {
+//         _errorMessage = 'Logement non trouvé';
+//         _setLoading(false);
+//         return false;
+//       }
+      
+//       final logement = _myLogements[index];
+      
+//       // Uploader les nouvelles images
+//       if (images.isNotEmpty) {
+//         print("📸 Ajout de ${images.length} photo(s)...");
+//         final newPhotoUrls = await _imageService.pickMultipleImages(
+//           images, 
+//           logementId
+//         );
+        
+//         // Fusionner avec les anciennes photos
+//         final allPhotos = [...logement.images, ...newPhotoUrls];
+//         final updatedLogement = logement.copyWith(images: allPhotos);
+        
+//         // Mettre à jour dans Firestore
+//         await _repository.updateLogement(updatedLogement);
+        
+//         // Mettre à jour localement
+//         _myLogements[index] = updatedLogement;
+        
+//         // Mettre à jour les listes filtrées
+//         final availableIndex = _availableLogements.indexWhere((l) => l.id == logementId);
+//         if (availableIndex != -1) {
+//           _availableLogements[availableIndex] = updatedLogement;
+//         }
+        
+//         final occupiedIndex = _occupiedLogements.indexWhere((l) => l.id == logementId);
+//         if (occupiedIndex != -1) {
+//           _occupiedLogements[occupiedIndex] = updatedLogement;
+//         }
+        
+//         print("✅ ${newPhotoUrls.length} photo(s) ajoutée(s)");
+//       }
+      
+//       _setLoading(false);
+//       return true;
+//     } catch (e) {
+//       _errorMessage = 'Erreur ajout photos: $e';
+//       _setLoading(false);
+//       return false;
+//     }
+//   }
+  
+//   /// Méthode pour supprimer une photo
+//   Future<bool> deletePhoto(String logementId, String photoUrl) async {
+//     _setLoading(true);
+//     _errorMessage = null;
+    
+//     try {
+//       // Trouver le logement
+//       final index = _myLogements.indexWhere((logement) => logement.id == logementId);
+//       if (index == -1) {
+//         _errorMessage = 'Logement non trouvé';
+//         _setLoading(false);
+//         return false;
+//       }
+      
+//       final logement = _myLogements[index];
+      
+//       // Supprimer la photo du stockage
+//       //await _imageService.deleteImage(photoUrl);
+      
+//       // Supprimer de la liste des photos
+//       final updatedPhotos = List<String>.from(logement.images)
+//         ..remove(photoUrl);
+      
+//       final updatedLogement = logement.copyWith(images: updatedPhotos);
+      
+//       // Mettre à jour dans Firestore
+//       await _repository.updateLogement(updatedLogement);
+      
+//       // Mettre à jour localement
+//       _myLogements[index] = updatedLogement;
+      
+//       // Mettre à jour les listes filtrées
+//       final availableIndex = _availableLogements.indexWhere((l) => l.id == logementId);
+//       if (availableIndex != -1) {
+//         _availableLogements[availableIndex] = updatedLogement;
+//       }
+      
+//       final occupiedIndex = _occupiedLogements.indexWhere((l) => l.id == logementId);
+//       if (occupiedIndex != -1) {
+//         _occupiedLogements[occupiedIndex] = updatedLogement;
+//       }
+      
+//       _setLoading(false);
+//       return true;
+//     } catch (e) {
+//       _errorMessage = 'Erreur suppression photo: $e';
 //       _setLoading(false);
 //       return false;
 //     }
@@ -814,3 +1028,7 @@ Future<bool> addLogementWithPhotos(
 //     notifyListeners();
 //   }
 // }
+
+
+
+

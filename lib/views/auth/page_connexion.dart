@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../utils/validators.dart';
+import '../admin/dashboard_page.dart';
 
 class PageConnexion extends StatefulWidget {
   const PageConnexion({super.key});
@@ -130,7 +131,8 @@ class _PageConnexionState extends State<PageConnexion> {
                                     final user = authViewModel.currentUser;
                                     if (user?.role == 'admin') {
                                       Navigator.pushReplacementNamed(
-                                          context, '/admin');
+                                         // context, '/admin');
+                                          context, '/admin-home');
                                     } else if (user?.role == 'owner') {
                                       Navigator.pushReplacementNamed(
                                           context, '/owner-home');

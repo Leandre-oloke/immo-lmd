@@ -1,181 +1,175 @@
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:image_picker/image_picker.dart';
+// services/image_service.dart
 import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 
 class ImageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // Sélectionner des images depuis la galerie
-  Future<List<XFile>> pickImages() async {
+  // Sélectionner une image
+  Future<File?> pickImage({bool fromCamera = false, int quality = 85}) async {
     try {
-      final List<XFile> images = await _picker.pickMultiImage(
-        maxWidth: 1920,
-        maxHeight: 1080,
-        imageQuality: 85,
+      final XFile? image = await _picker.pickImage(
+        source: fromCamera ? ImageSource.camera : ImageSource.gallery,
+        imageQuality: quality,
+        maxWidth: 1080,
       );
-      return images ?? []; // Ajout du ?? [] pour sécurité
+      return image != null ? File(image.path) : null;
     } catch (e) {
-      print("❌ Erreur sélection images: $e");
+      print('Erreur sélection image: $e');
+      return null;
+    }
+  }
+
+  // Sélectionner plusieurs images
+  Future<List<File>> pickMultipleImages() async {
+    try {
+      List<XFile?> images = await _picker.pickMultiImage(
+        imageQuality: 85,
+        maxWidth: 1080,
+      );
+      return images.whereType<XFile>().map((x) => File(x.path)).toList();
+    } catch (e) {
+      print('Erreur sélection multiples images: $e');
       return [];
     }
   }
 
-  // CORRIGÉ : Uploader une image vers Firebase Storage
-  Future<String> uploadImage(File image, String logementId, int index) async {
-    print('🔄 Début upload image $index pour logement $logementId');
-    
+  // Uploader une image (XFile)
+  Future<String?> uploadSingleImage(
+    XFile image, {
+    required String userId,
+    required String folder,
+    String? customFileName,
+  }) async {
     try {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_$index.jpg';
-      final ref = _storage.ref().child('logements/$logementId/$fileName');
+      File imageFile = File(image.path);
       
-      print('   📁 Chemin Storage: ${ref.fullPath}');
-      print('   📊 Taille fichier: ${await image.length()} bytes');
+      // Nom de fichier unique
+      String fileName = customFileName ??
+          '${folder}_${userId}_${DateTime.now().millisecondsSinceEpoch}${path.extension(image.path)}';
       
-      // CORRECTION CRITIQUE : Attendre la complétion de la tâche
-      final uploadTask = ref.putFile(image);
+      // Référence Storage
+      Reference storageRef = _storage.ref().child('$folder/$userId/$fileName');
       
-      // Écouter la progression (optionnel, pour le débogage)
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        final progress = snapshot.bytesTransferred / snapshot.totalBytes * 100;
-        print('   📈 Progression image $index: ${progress.toStringAsFixed(1)}%');
-      }, onError: (e) {
-        print('   ❌ Erreur progression image $index: $e');
-      });
+      // Metadata
+      SettableMetadata metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'uploadedBy': userId},
+      );
       
-      // ATTENDRE que l'upload soit complètement terminé
-      final TaskSnapshot snapshot = await uploadTask;
+      // Upload
+      UploadTask uploadTask = storageRef.putFile(imageFile, metadata);
+      TaskSnapshot snapshot = await uploadTask;
       
-      // MAINTENANT on peut récupérer l'URL
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      // Récupérer URL
+      String downloadUrl = await snapshot.ref.getDownloadURL();
       
-      print('✅ Image $index uploadée avec succès: $downloadUrl');
       return downloadUrl;
-      
-    } catch (e, stackTrace) {
-      print("❌ Erreur upload image $index: $e");
-      print("Stack trace: $stackTrace");
-      rethrow;
+    } catch (e) {
+      print('Erreur upload single image: $e');
+      return null;
     }
   }
 
-  // CORRIGÉ : Uploader plusieurs images
+  // Uploader plusieurs images
   Future<List<String>> uploadMultipleImages(
-    List<XFile> images, 
-    String logementId
-  ) async {
-    print('=== DÉBUT UPLOAD MULTIPLE ===');
-    print('📸 Nombre d\'images: ${images.length}');
-    print('🏠 ID Logement: $logementId');
-    
-    final List<String> urls = [];
+    List<XFile> images, {
+    required String userId,
+    required String folder,
+  }) async {
+    List<String> urls = [];
     
     for (int i = 0; i < images.length; i++) {
       try {
-        print('\n--- Traitement image $i/${images.length} ---');
-        print('   Chemin local: ${images[i].path}');
+        String? url = await uploadSingleImage(
+          images[i],
+          userId: userId,
+          folder: folder,
+          customFileName: '${folder}_${userId}_${i}_${DateTime.now().millisecondsSinceEpoch}',
+        );
         
-        // Vérifier si le fichier existe
-        final file = File(images[i].path);
-        if (!await file.exists()) {
-          print('   ⚠️ Fichier n\'existe pas, skip...');
-          continue;
+        if (url != null) {
+          urls.add(url);
         }
-        
-        final url = await uploadImage(file, logementId, i);
-        urls.add(url);
-        
       } catch (e) {
-        print("⚠️ Image $i non uploadée: $e");
+        print('Erreur upload image $i: $e');
       }
     }
-    
-    print('=== FIN UPLOAD MULTIPLE ===');
-    print('✅ URLs obtenues: ${urls.length}/${images.length}');
     
     return urls;
   }
 
-  // Supprimer une image
-  Future<void> deleteImage(String imageUrl) async {
-    try {
-      final ref = _storage.refFromURL(imageUrl);
-      await ref.delete();
-      print('🗑️ Image supprimée: $imageUrl');
-    } catch (e) {
-      print("❌ Erreur suppression image: $e");
-    }
+  // Vérifier taille fichier
+  Future<bool> isFileSizeValid(File file, {int maxSizeMB = 5}) {
+    return file.length().then((size) {
+      double sizeMB = size / (1024 * 1024);
+      return sizeMB <= maxSizeMB;
+    });
   }
 }
 
 
-// // lib/services/image_service.dart
-// import 'package:firebase_storage/firebase_storage.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
 
-// class ImageService {
-//   final FirebaseStorage _storage = FirebaseStorage.instance;
-//   final ImagePicker _picker = ImagePicker();
 
-//   // Sélectionner des images depuis la galerie
-//   Future<List<XFile>> pickImages() async {
-//     try {
-//       final List<XFile> images = await _picker.pickMultiImage(
-//         maxWidth: 1920,
-//         maxHeight: 1080,
-//         imageQuality: 85,
-//       );
-//       return images;
-//     } catch (e) {
-//       print("❌ Erreur sélection images: $e");
-//       return [];
-//     }
-//   }
 
-//   // Uploader une image vers Firebase Storage
-//   Future<String> uploadImage(File image, String logementId, int index) async {
-//     try {
-//       final fileName = '${DateTime.now().millisecondsSinceEpoch}_$index.jpg';
-//       final ref = _storage.ref().child('logements/$logementId/$fileName');
+  // // Compresser une image
+  // Future<File?> compressImage(File file, {int quality = 85}) async {
+  //   try {
+  //     // Obtenir le répertoire temporaire
+  //     final dir = await getTemporaryDirectory();
+  //     final targetPath = '${dir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg';
       
-//       final uploadTask = await ref.putFile(image);
-//       final downloadUrl = await uploadTask.ref.getDownloadURL();
+  //     // Compresser l'image
+  //     XFile? result = await FlutterImageCompress.compressAndGetFile(
+  //       file.absolute.path,
+  //       targetPath,
+  //       quality: quality,
+  //       minWidth: 600,
+  //       minHeight: 600,
+  //     );
       
-//       return downloadUrl;
-//     } catch (e) {
-//       print("❌ Erreur upload image: $e");
-//       rethrow;
-//     }
+  //     return result != null ? File(result.path) : null;
+  //   } catch (e) {
+  //     print('Erreur compression image: $e');
+  //     return null;
+  //   }
+  // }
+
+  // // Redimensionner une image
+  // Future<Uint8List?> resizeImage(File file, {int width = 800, int height = 800}) async {
+  //   try {
+  //     Uint8List? result = await FlutterImageCompress.compressWithFile(
+  //       file.absolute.path,
+  //       minWidth: width,
+  //       minHeight: height,
+  //       quality: 80,
+  //     );
+      
+  //     return result;
+  //   } catch (e) {
+  //     print('Erreur redimensionnement image: $e');
+  //     return null;
+  //   }
+  // }
+
+//   // Vérifier la taille d'un fichier
+//   Future<bool> isFileSizeValid(File file, {int maxSizeMB = 5}) {
+//     return file.length().then((size) {
+//       double sizeMB = size / (1024 * 1024);
+//       return sizeMB <= maxSizeMB;
+//     });
 //   }
 
-//   // Uploader plusieurs images
-//   Future<List<String>> uploadMultipleImages(
-//     List<XFile> images, 
-//     String logementId
-//   ) async {
-//     final List<String> urls = [];
-    
-//     for (int i = 0; i < images.length; i++) {
-//       try {
-//         final file = File(images[i].path);
-//         final url = await uploadImage(file, logementId, i);
-//         urls.add(url);
-//       } catch (e) {
-//         print("⚠️ Image $i non uploadée: $e");
-//       }
-//     }
-    
-//     return urls;
-//   }
-
-//   // Supprimer une image
-//   Future<void> deleteImage(String imageUrl) async {
-//     try {
-//       final ref = _storage.refFromURL(imageUrl);
-//       await ref.delete();
-//     } catch (e) {
-//       print("❌ Erreur suppression image: $e");
-//     }
+//   // Convertir Uint8List en File
+//   Future<File> uint8ListToFile(Uint8List bytes, String fileName) async {
+//     final dir = await getTemporaryDirectory();
+//     final file = File('${dir.path}/$fileName');
+//     await file.writeAsBytes(bytes);
+//     return file;
 //   }
 // }
+
+

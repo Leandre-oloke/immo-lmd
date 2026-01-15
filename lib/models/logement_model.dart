@@ -8,10 +8,12 @@ class Logement {
   double prix;
   int superficie;
   int nombreChambres;
-  List<String> photos;
+  List<String> images; // ✅ CHANGÉ de 'photos' à 'images'
   String proprietaireId;
-  String proprietaireNom; // AJOUTEZ CETTE LIGNE
+  String proprietaireNom; 
+  String proprietaireNumero;
   bool disponible;
+  bool isFavori;
   DateTime datePublication;
   
   Logement({
@@ -22,10 +24,12 @@ class Logement {
     required this.prix,
     required this.superficie,
     required this.nombreChambres,
-    this.photos = const [],
+    this.images = const [], // ✅ CHANGÉ
     required this.proprietaireId,
-    required this.proprietaireNom, // AJOUTEZ CETTE LIGNE
+    required this.proprietaireNom,
+    required this.proprietaireNumero,
     this.disponible = true,
+    this.isFavori = false,
     required this.datePublication,
   });
   
@@ -38,10 +42,12 @@ class Logement {
       prix: (data['prix'] ?? 0).toDouble(),
       superficie: data['superficie'] ?? 0,
       nombreChambres: data['nombreChambres'] ?? 0,
-      photos: List<String>.from(data['photos'] ?? []),
+      images: List<String>.from(data['images'] ?? []), // ✅ CHANGÉ
       proprietaireId: data['proprietaireId'] ?? '',
-      proprietaireNom: data['proprietaireNom'] ?? '', // AJOUTEZ CETTE LIGNE
+      proprietaireNom: data['proprietaireNom'] ?? '',
+      proprietaireNumero: data['proprietaireNumero'] ?? '',
       disponible: data['disponible'] ?? true,
+      isFavori: data['isFavori'] ?? false, // ✅ Récupère depuis Firestore
       datePublication: data['datePublication'] != null
           ? DateTime.parse(data['datePublication'])
           : DateTime.now(),
@@ -57,17 +63,19 @@ class Logement {
       'prix': prix,
       'superficie': superficie,
       'nombreChambres': nombreChambres,
-      'photos': photos,
+      'images': images, // ✅ CHANGÉ
       'proprietaireId': proprietaireId,
-      'proprietaireNom': proprietaireNom, // AJOUTEZ CETTE LIGNE
+      'proprietaireNom': proprietaireNom,
+      'proprietaireNumero': proprietaireNumero,
       'disponible': disponible,
+      'isFavori': isFavori, // ✅ Sauvegarde dans Firestore
       'datePublication': datePublication.toIso8601String(),
     };
   }
 
   @override
   String toString() {
-    return 'Logement(id: $id, titre: $titre, propriétaire: $proprietaireNom, prix: $prix€)';
+    return 'Logement(id: $id, titre: $titre, propriétaire: $proprietaireNom, numéro: $proprietaireNumero, prix: $prix€)';
   }
 
   @override
@@ -82,10 +90,12 @@ class Logement {
         other.prix == prix &&
         other.superficie == superficie &&
         other.nombreChambres == nombreChambres &&
-        listEquals(other.photos, photos) &&
+        listEquals(other.images, images) && // ✅ CHANGÉ
         other.proprietaireId == proprietaireId &&
-        other.proprietaireNom == proprietaireNom && // AJOUTEZ CETTE LIGNE
+        other.proprietaireNom == proprietaireNom &&
+        other.proprietaireNumero == proprietaireNumero &&
         other.disponible == disponible &&
+        other.isFavori == isFavori && // ✅ CHANGÉ en ajoutant isFavori
         other.datePublication == datePublication;
   }
 
@@ -99,10 +109,12 @@ class Logement {
       prix,
       superficie,
       nombreChambres,
-      Object.hashAll(photos),
+      Object.hashAll(images), // ✅ CHANGÉ
       proprietaireId,
-      proprietaireNom, // AJOUTEZ CETTE LIGNE
+      proprietaireNom,
+      proprietaireNumero,
       disponible,
+      isFavori, // ✅ CHANGÉ en ajoutant isFavori
       datePublication,
     );
   }
@@ -117,10 +129,12 @@ extension LogementCopyWith on Logement {
     double? prix,
     int? superficie,
     int? nombreChambres,
-    List<String>? photos,
+    List<String>? images, // ✅ CHANGÉ
     String? proprietaireId,
-    String? proprietaireNom, // AJOUTEZ CETTE LIGNE
+    String? proprietaireNom,
+    String? proprietaireNumero,
     bool? disponible,
+    bool? isFavori, // ✅ CHANGÉ en ajoutant isFavori
     DateTime? datePublication,
   }) {
     return Logement(
@@ -131,10 +145,12 @@ extension LogementCopyWith on Logement {
       prix: prix ?? this.prix,
       superficie: superficie ?? this.superficie,
       nombreChambres: nombreChambres ?? this.nombreChambres,
-      photos: photos ?? this.photos,
+      images: images ?? this.images, // ✅ CHANGÉ
       proprietaireId: proprietaireId ?? this.proprietaireId,
-      proprietaireNom: proprietaireNom ?? this.proprietaireNom, // AJOUTEZ CETTE LIGNE
+      proprietaireNom: proprietaireNom ?? this.proprietaireNom,
+      proprietaireNumero: proprietaireNumero ?? this.proprietaireNumero,
       disponible: disponible ?? this.disponible,
+      isFavori: isFavori ?? this.isFavori, // ✅ CHANGÉ en ajoutant isFavori
       datePublication: datePublication ?? this.datePublication,
     );
   }
@@ -144,7 +160,11 @@ extension LogementCopyWith on Logement {
 
 
 
-// import 'package:flutter/foundation.dart'; // Import ajouté ici
+
+
+
+
+// import 'package:flutter/foundation.dart';
 
 // class Logement {
 //   String id;
@@ -154,10 +174,12 @@ extension LogementCopyWith on Logement {
 //   double prix;
 //   int superficie;
 //   int nombreChambres;
-//   List<String> photos;
+//   List<String> images;
 //   String proprietaireId;
+//   String proprietaireNom; // AJOUTEZ CETTE LIGNE
 //   bool disponible;
 //   DateTime datePublication;
+//   //final List<String> images; // <-- Ajout des images
   
 //   Logement({
 //     required this.id,
@@ -167,8 +189,9 @@ extension LogementCopyWith on Logement {
 //     required this.prix,
 //     required this.superficie,
 //     required this.nombreChambres,
-//     this.photos = const [],
+//     this.images = const [],
 //     required this.proprietaireId,
+//     required this.proprietaireNom, // AJOUTEZ CETTE LIGNE
 //     this.disponible = true,
 //     required this.datePublication,
 //   });
@@ -182,8 +205,9 @@ extension LogementCopyWith on Logement {
 //       prix: (data['prix'] ?? 0).toDouble(),
 //       superficie: data['superficie'] ?? 0,
 //       nombreChambres: data['nombreChambres'] ?? 0,
-//       photos: List<String>.from(data['photos'] ?? []),
+//       images: List<String>.from(data['images'] ?? []),
 //       proprietaireId: data['proprietaireId'] ?? '',
+//       proprietaireNom: data['proprietaireNom'] ?? '', // AJOUTEZ CETTE LIGNE
 //       disponible: data['disponible'] ?? true,
 //       datePublication: data['datePublication'] != null
 //           ? DateTime.parse(data['datePublication'])
@@ -200,20 +224,19 @@ extension LogementCopyWith on Logement {
 //       'prix': prix,
 //       'superficie': superficie,
 //       'nombreChambres': nombreChambres,
-//       'photos': photos,
+//       'images': images,
 //       'proprietaireId': proprietaireId,
+//       'proprietaireNom': proprietaireNom, // AJOUTEZ CETTE LIGNE
 //       'disponible': disponible,
 //       'datePublication': datePublication.toIso8601String(),
 //     };
 //   }
 
-//   // Méthode toString pour le débogage
 //   @override
 //   String toString() {
-//     return 'Logement(id: $id, titre: $titre, prix: $prix€, disponible: $disponible)';
+//     return 'Logement(id: $id, titre: $titre, propriétaire: $proprietaireNom, prix: $prix€)';
 //   }
 
-//   // Méthode pour comparer deux logements
 //   @override
 //   bool operator ==(Object other) {
 //     if (identical(this, other)) return true;
@@ -226,8 +249,9 @@ extension LogementCopyWith on Logement {
 //         other.prix == prix &&
 //         other.superficie == superficie &&
 //         other.nombreChambres == nombreChambres &&
-//         listEquals(other.photos, photos) && // Utilisation de listEquals
+//         listEquals(other.images, images) &&
 //         other.proprietaireId == proprietaireId &&
+//         other.proprietaireNom == proprietaireNom && // AJOUTEZ CETTE LIGNE
 //         other.disponible == disponible &&
 //         other.datePublication == datePublication;
 //   }
@@ -242,16 +266,15 @@ extension LogementCopyWith on Logement {
 //       prix,
 //       superficie,
 //       nombreChambres,
-//       // Pour la liste photos, on utilise un hash basé sur le contenu
-//       Object.hashAll(photos),
+//       Object.hashAll(images),
 //       proprietaireId,
+//       proprietaireNom, // AJOUTEZ CETTE LIGNE
 //       disponible,
 //       datePublication,
 //     );
 //   }
 // }
 
-// // Extension pour créer des copies modifiées
 // extension LogementCopyWith on Logement {
 //   Logement copyWith({
 //     String? id,
@@ -261,8 +284,9 @@ extension LogementCopyWith on Logement {
 //     double? prix,
 //     int? superficie,
 //     int? nombreChambres,
-//     List<String>? photos,
+//     List<String>? images, // photos -> images
 //     String? proprietaireId,
+//     String? proprietaireNom, // AJOUTEZ CETTE LIGNE
 //     bool? disponible,
 //     DateTime? datePublication,
 //   }) {
@@ -274,11 +298,17 @@ extension LogementCopyWith on Logement {
 //       prix: prix ?? this.prix,
 //       superficie: superficie ?? this.superficie,
 //       nombreChambres: nombreChambres ?? this.nombreChambres,
-//       photos: photos ?? this.photos,
+//       images: images ?? this.images,
 //       proprietaireId: proprietaireId ?? this.proprietaireId,
+//       proprietaireNom: proprietaireNom ?? this.proprietaireNom, // AJOUTEZ CETTE LIGNE
 //       disponible: disponible ?? this.disponible,
 //       datePublication: datePublication ?? this.datePublication,
 //     );
 //   }
 // }
+
+
+
+
+// //================================
 

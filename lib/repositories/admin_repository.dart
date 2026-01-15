@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/utilisateur_model.dart';
 import '../models/logement_model.dart';
+import 'package:flutter/foundation.dart';
 
 class AdminRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -9,9 +10,9 @@ class AdminRepository {
   Future<int> getTotalUsers() async {
     try {
       final snapshot = await _firestore.collection('users').count().get();
-      return snapshot.count ?? 0; // Handle null case
+      return snapshot.count ?? 0;
     } catch (e) {
-      print('Erreur getTotalUsers: $e');
+      debugPrint('❌ Erreur getTotalUsers: $e');
       return 0;
     }
   }
@@ -20,9 +21,9 @@ class AdminRepository {
   Future<int> getTotalLogements() async {
     try {
       final snapshot = await _firestore.collection('logements').count().get();
-      return snapshot.count ?? 0; // Handle null case
+      return snapshot.count ?? 0;
     } catch (e) {
-      print('Erreur getTotalLogements: $e');
+      debugPrint('❌ Erreur getTotalLogements: $e');
       return 0;
     }
   }
@@ -66,7 +67,7 @@ class AdminRepository {
         'inactiveLogements': inactiveLogements,
       };
     } catch (e) {
-      print('Erreur getDetailedStatistics: $e');
+      debugPrint('❌ Erreur getDetailedStatistics: $e');
       return {
         'totalOwners': 0,
         'totalAdmins': 0,
@@ -79,10 +80,13 @@ class AdminRepository {
   /// Récupère tous les utilisateurs
   Future<List<Utilisateur>> getAllUsers() async {
     try {
+      debugPrint('🔄 Repository: Récupération de tous les utilisateurs...');
       final snapshot = await _firestore
           .collection('users')
           .orderBy('dateCreation', descending: true)
           .get();
+      
+      debugPrint('✅ Repository: ${snapshot.docs.length} utilisateurs récupérés');
       
       return snapshot.docs.map((doc) {
         final data = doc.data();
@@ -90,7 +94,7 @@ class AdminRepository {
         return Utilisateur.fromMap(data);
       }).toList();
     } catch (e) {
-      print('Erreur getAllUsers: $e');
+      debugPrint('❌ Erreur getAllUsers: $e');
       return [];
     }
   }
@@ -109,7 +113,7 @@ class AdminRepository {
         return Logement.fromMap(data);
       }).toList();
     } catch (e) {
-      print('Erreur getAllLogements: $e');
+      debugPrint('❌ Erreur getAllLogements: $e');
       return [];
     }
   }
@@ -117,13 +121,37 @@ class AdminRepository {
   /// Met à jour le rôle d'un utilisateur
   Future<bool> updateUserRole(String userId, String newRole) async {
     try {
+      debugPrint('🔄 Repository: Mise à jour du rôle...');
+      debugPrint('📋 User ID: $userId');
+      debugPrint('📋 Nouveau rôle: $newRole');
+      
+      // Vérifier que l'utilisateur existe
+      final userDoc = await _firestore.collection('users').doc(userId).get();
+      
+      if (!userDoc.exists) {
+        debugPrint('❌ Utilisateur non trouvé dans Firestore');
+        throw Exception('Utilisateur non trouvé');
+      }
+      
+      debugPrint('✅ Utilisateur trouvé, mise à jour...');
+      
+      // Mettre à jour le rôle
       await _firestore.collection('users').doc(userId).update({
         'role': newRole,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      
+      debugPrint('✅ Repository: Rôle mis à jour avec succès dans Firestore');
+      
+      // Vérifier que la mise à jour a bien été effectuée
+      final updatedDoc = await _firestore.collection('users').doc(userId).get();
+      final updatedRole = updatedDoc.data()?['role'];
+      debugPrint('✅ Vérification: Nouveau rôle dans Firestore = $updatedRole');
+      
       return true;
-    } catch (e) {
-      print('Erreur updateUserRole: $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erreur updateUserRole: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
       return false;
     }
   }
@@ -142,9 +170,10 @@ class AdminRepository {
       }
       
       await _firestore.collection('users').doc(userId).delete();
+      debugPrint('✅ Utilisateur supprimé avec succès');
       return true;
     } catch (e) {
-      print('Erreur deleteUser: $e');
+      debugPrint('❌ Erreur deleteUser: $e');
       return false;
     }
   }
@@ -153,9 +182,10 @@ class AdminRepository {
   Future<bool> deleteLogement(String logementId) async {
     try {
       await _firestore.collection('logements').doc(logementId).delete();
+      debugPrint('✅ Logement supprimé avec succès');
       return true;
     } catch (e) {
-      print('Erreur deleteLogement: $e');
+      debugPrint('❌ Erreur deleteLogement: $e');
       return false;
     }
   }
@@ -167,9 +197,10 @@ class AdminRepository {
         'disponible': isActive,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+      debugPrint('✅ Statut du logement mis à jour avec succès');
       return true;
     } catch (e) {
-      print('Erreur updateLogementStatus: $e');
+      debugPrint('❌ Erreur updateLogementStatus: $e');
       return false;
     }
   }
@@ -207,7 +238,7 @@ class AdminRepository {
         'lastActivity': DateTime.now(),
       };
     } catch (e) {
-      print('Erreur getRecentActivities: $e');
+      debugPrint('❌ Erreur getRecentActivities: $e');
       return {
         'recentUsers': [],
         'recentLogements': [],
@@ -235,7 +266,7 @@ class AdminRepository {
       
       return roleCounts;
     } catch (e) {
-      print('Erreur getUsersByRole: $e');
+      debugPrint('❌ Erreur getUsersByRole: $e');
       return {
         'admin': 0,
         'owner': 0,
@@ -264,7 +295,7 @@ class AdminRepository {
         'inactive': inactiveSnapshot.count ?? 0,
       };
     } catch (e) {
-      print('Erreur getLogementsByAvailability: $e');
+      debugPrint('❌ Erreur getLogementsByAvailability: $e');
       return {
         'active': 0,
         'inactive': 0,
@@ -301,7 +332,7 @@ class AdminRepository {
       
       return priceRanges;
     } catch (e) {
-      print('Erreur getLogementsByPriceRange: $e');
+      debugPrint('❌ Erreur getLogementsByPriceRange: $e');
       return {
         '0-500': 0,
         '501-1000': 0,
@@ -311,4 +342,7 @@ class AdminRepository {
     }
   }
 }
+
+
+
 

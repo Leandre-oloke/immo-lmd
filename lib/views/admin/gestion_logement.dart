@@ -87,9 +87,9 @@ class _AdminLogementsPageState extends State<AdminLogementsPage> {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            leading: logement.photos.isNotEmpty
+            leading: logement.images.isNotEmpty
                 ? Image.network(
-                    logement.photos.first,
+                    logement.images.first,
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,
