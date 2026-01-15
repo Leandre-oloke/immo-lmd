@@ -139,7 +139,7 @@ class LogementCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${logement.prix} €/mois',
+                  '${logement.prix} FCFA/mois',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,

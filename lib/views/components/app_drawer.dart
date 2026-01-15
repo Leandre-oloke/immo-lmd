@@ -326,7 +326,7 @@ class AppDrawer extends StatelessWidget {
       case 'owner':
         return Colors.blue;
       case 'user':
-        return Colors.green;
+        return  Colors.blue;
       default:
         return Colors.grey;
     }

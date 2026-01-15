@@ -1,7 +1,7 @@
+import 'package:app_mobile/views/logement/details_bottom_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/logement_viewmodel.dart';
-import '../../viewmodels/auth_viewmodel.dart';
 import '../../models/logement_model.dart';
 import '../components/logement_card.dart';
 import '../components/app_drawer.dart';
@@ -17,12 +17,12 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'Tous';
   final List<String> _filterOptions = ['Tous', 'Disponibles', 'Moins cher', 'Plus cher'];
-  
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadLogements();
+      context.read<LogementViewModel>().loadAllLogements();
     });
   }
 
@@ -32,28 +32,21 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
     super.dispose();
   }
 
-  void _loadLogements() {
-    final logementViewModel = context.read<LogementViewModel>();
-    logementViewModel.loadAllLogements();
-  }
-
   List<Logement> _filterLogements(List<Logement> logements) {
     List<Logement> filtered = List.from(logements);
-    
-    // Filtre par recherche
+
     if (_searchController.text.isNotEmpty) {
       final query = _searchController.text.toLowerCase();
       filtered = filtered.where((logement) {
         return logement.titre.toLowerCase().contains(query) ||
-               logement.description.toLowerCase().contains(query) ||
-               logement.adresse.toLowerCase().contains(query);
+            logement.description.toLowerCase().contains(query) ||
+            logement.adresse.toLowerCase().contains(query);
       }).toList();
     }
-    
-    // Filtre par option sélectionnée
+
     switch (_selectedFilter) {
       case 'Disponibles':
-        filtered = filtered.where((logement) => logement.disponible).toList();
+        filtered = filtered.where((l) => l.disponible).toList();
         break;
       case 'Moins cher':
         filtered.sort((a, b) => a.prix.compareTo(b.prix));
@@ -61,61 +54,124 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
       case 'Plus cher':
         filtered.sort((a, b) => b.prix.compareTo(a.prix));
         break;
-      default:
-        // 'Tous' - pas de tri supplémentaire
-        break;
     }
-    
+
     return filtered;
   }
 
   @override
   Widget build(BuildContext context) {
-    final logementViewModel = context.watch<LogementViewModel>();
-    final authViewModel = context.watch<AuthViewModel>();
-    
-    final filteredLogements = _filterLogements(logementViewModel.logements);
+    final logementVM = context.watch<LogementViewModel>();
+    final filteredLogements = _filterLogements(logementVM.logements);
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color.fromARGB(0, 240, 246, 247),
+        elevation: 0,
         title: const Text("Trouvez votre logement"),
         actions: [
           IconButton(
             icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
-            },
+            onPressed: () => Navigator.pushNamed(context, '/profile'),
           ),
           IconButton(
             icon: const Icon(Icons.notifications),
-            onPressed: () {
-              // TODO: Implémenter les notifications
-            },
+            onPressed: () {},
           ),
         ],
       ),
       drawer: const AppDrawer(),
-      body: Column(
-        children: [
-          // Barre de recherche et filtres
-          _buildSearchBar(),
-          
-          // Filtres
-          _buildFilterChips(),
-          
-          // Compteur de résultats
-          _buildResultsCounter(filteredLogements.length),
-          
-          // Liste des logements
-          _buildLogementsList(logementViewModel, filteredLogements),
-        ],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 159, 219, 247),
+              Color.fromARGB(255, 13, 0, 83),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () async => logementVM.loadAllLogements(),
+            child: _buildContent(logementVM, filteredLogements),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Retour en haut de la liste
-          Scrollable.ensureVisible(context);
-        },
+        onPressed: () => Scrollable.ensureVisible(context),
         child: const Icon(Icons.arrow_upward),
+      ),
+    );
+  }
+
+  Widget _buildContent(LogementViewModel vm, List<Logement> logements) {
+    if (vm.isLoading) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text("Chargement des logements...", style: TextStyle(color: Colors.white)),
+          ],
+        ),
+      );
+    }
+
+    if (vm.errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 60, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(vm.errorMessage!, style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: vm.loadAllLogements,
+              child: const Text("Réessayer"),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (logements.isEmpty) {
+      return Center(
+        child: Text(
+          _searchController.text.isEmpty
+              ? "Aucun logement disponible"
+              : "Aucun résultat pour \"${_searchController.text}\"",
+          style: const TextStyle(color: Colors.white, fontSize: 18),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 80),
+      child: Column(
+        children: [
+          _buildSearchBar(),
+          _buildFilterChips(),
+          _buildResultsCounter(logements.length),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: logements.map((logement) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: LogementCard(
+                    logement: logement,
+                    onTap: () => _showLogementDetails(logement),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -127,41 +183,16 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.3), blurRadius: 8)],
         ),
         child: TextField(
           controller: _searchController,
-          decoration: InputDecoration(
+          decoration: const InputDecoration(
             hintText: "Rechercher un logement...",
-            prefixIcon: const Icon(Icons.search, color: Colors.blue),
+            prefixIcon: Icon(Icons.search),
             border: InputBorder.none,
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey),
-                    onPressed: () {
-                      setState(() {
-                        _searchController.clear();
-                      });
-                    },
-                  )
-                : null,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
           ),
-          onChanged: (value) {
-            setState(() {});
-          },
-          onSubmitted: (value) {
-            setState(() {});
-          },
+          onChanged: (_) => setState(() {}),
         ),
       ),
     );
@@ -179,20 +210,7 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
             child: FilterChip(
               label: Text(filter),
               selected: _selectedFilter == filter,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedFilter = filter;
-                });
-              },
-              backgroundColor: Colors.grey.shade200,
-              selectedColor: Colors.blue.shade100,
-              checkmarkColor: Colors.blue,
-              labelStyle: TextStyle(
-                color: _selectedFilter == filter ? Colors.blue : Colors.black,
-                fontWeight: _selectedFilter == filter 
-                    ? FontWeight.bold 
-                    : FontWeight.normal,
-              ),
+              onSelected: (_) => setState(() => _selectedFilter = filter),
             ),
           );
         }).toList(),
@@ -202,213 +220,19 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
 
   Widget _buildResultsCounter(int count) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            "$count logement${count > 1 ? 's' : ''} trouvé${count > 1 ? 's' : ''}",
-            style: const TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
-          if (_searchController.text.isNotEmpty || _selectedFilter != 'Tous')
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _searchController.clear();
-                  _selectedFilter = 'Tous';
-                });
-              },
-              child: const Text("Réinitialiser"),
-            ),
-        ],
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        "$count logement${count > 1 ? 's' : ''} trouvé${count > 1 ? 's' : ''}",
+        style: const TextStyle(color: Colors.white),
       ),
     );
   }
 
-  Widget _buildLogementsList(
-    LogementViewModel viewModel,
-    List<Logement> filteredLogements,
-  ) {
-    if (viewModel.isLoading) {
-      return const Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text("Chargement des logements..."),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (viewModel.errorMessage != null) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 60, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                "Erreur de chargement",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                viewModel.errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _loadLogements,
-                child: const Text("Réessayer"),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (filteredLogements.isEmpty) {
-      return Expanded(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                _searchController.text.isEmpty ? Icons.home : Icons.search_off,
-                size: 80,
-                color: Colors.grey.shade400,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                _searchController.text.isEmpty
-                    ? "Aucun logement disponible"
-                    : "Aucun résultat pour '${_searchController.text}'",
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _searchController.text.isEmpty
-                    ? "Revenez plus tard..."
-                    : "Essayez avec d'autres mots-clés",
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              if (_searchController.text.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _searchController.clear();
-                      });
-                    },
-                    child: const Text("Effacer la recherche"),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return Expanded(
-      child: RefreshIndicator(
-        onRefresh: () async {
-          _loadLogements();
-        },
-        child: ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: filteredLogements.length,
-          itemBuilder: (context, index) {
-            final logement = filteredLogements[index];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: LogementCard(
-                logement: logement,
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/logement-details',
-                    arguments: logement,
-                  );
-                },
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  // Méthode pour afficher un dialogue de filtres avancés
-  void _showAdvancedFiltersDialog() {
-    showDialog(
+  void _showLogementDetails(Logement logement) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text("Filtres avancés"),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView(
-                  shrinkWrap: true,
-                  children: [
-                    const Text("Prix maximum (€)"),
-                    Slider(
-                      min: 0,
-                      max: 2000,
-                      divisions: 20,
-                      value: 1000,
-                      onChanged: (value) {},
-                    ),
-                    const SizedBox(height: 16),
-                    const Text("Nombre minimum de chambres"),
-                    Slider(
-                      min: 0,
-                      max: 5,
-                      divisions: 5,
-                      value: 1,
-                      onChanged: (value) {},
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text("Afficher seulement les disponibles"),
-                      value: true,
-                      onChanged: (value) {},
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Annuler"),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Appliquer"),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      isScrollControlled: true,
+      builder: (_) => DetailsBottomSheet(logement: logement),
     );
   }
 }
-

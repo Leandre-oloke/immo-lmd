@@ -61,7 +61,7 @@ class DetailsBottomSheet extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "${logement.prix} €/mois",
+                      "${logement.prix} FCFA/mois",
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
