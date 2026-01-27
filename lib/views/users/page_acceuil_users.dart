@@ -368,7 +368,7 @@ class _PageAcceuilUsersState extends State<PageAcceuilUsers> {
                 child: ListView(
                   shrinkWrap: true,
                   children: [
-                    const Text("Prix maximum (€)"),
+                    const Text("Prix maximum (CFA)"),
                     Slider(
                       min: 0,
                       max: 2000,

@@ -91,7 +91,7 @@ class _AllLogementsPageState extends State<AllLogementsPage> {
             },
           ),
           FilterChip(
-            label: const Text('Moins de 500€'),
+            label: const Text('Moins de 500CFA'),
             selected: viewModel.searchFilters['maxPrice'] == 500,
             onSelected: (selected) {
               viewModel.setSearchFilters({
@@ -211,7 +211,7 @@ class _AllLogementsPageState extends State<AllLogementsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${logement.prix.toStringAsFixed(0)} €/mois',
+                    '${logement.prix.toStringAsFixed(0)} CFA/mois',
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -422,7 +422,7 @@ class _AllLogementsPageState extends State<AllLogementsPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          "${logement.prix.toStringAsFixed(0)} €/mois",
+                          "${logement.prix.toStringAsFixed(0)} CFA/mois",
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,

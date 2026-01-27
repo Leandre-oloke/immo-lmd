@@ -139,7 +139,7 @@ class LogementCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '${logement.prix} €/mois',
+                  '${logement.prix} CFA/mois',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -632,7 +632,7 @@ class LogementCardCompact extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '${logement.prix} €',
+                        '${logement.prix} CFA',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,
@@ -816,7 +816,7 @@ class LogementCardCompact extends StatelessWidget {
 //               borderRadius: BorderRadius.circular(20),
 //             ),
 //             child: Text(
-//               '${logement.prix} €/mois',
+//               '${logement.prix} CFA/mois',
 //               style: const TextStyle(
 //                 color: Colors.white,
 //                 fontSize: 14,
@@ -1273,7 +1273,7 @@ class LogementCardCompact extends StatelessWidget {
 //               Row(
 //                 children: [
 //                   Text(
-//                     '${logement.prix} €',
+//                     '${logement.prix} CFA',
 //                     style: const TextStyle(
 //                       color: Colors.blue,
 //                       fontWeight: FontWeight.bold,
@@ -1450,7 +1450,7 @@ class LogementCardCompact extends StatelessWidget {
 //               borderRadius: BorderRadius.circular(20),
 //             ),
 //             child: Text(
-//               '${logement.prix} €/mois',
+//               '${logement.prix} CFA/mois',
 //               style: const TextStyle(
 //                 color: Colors.white,
 //                 fontSize: 14,
@@ -1725,7 +1725,7 @@ class LogementCardCompact extends StatelessWidget {
 //             Row(
 //               children: [
 //                 Text(
-//                   '${logement.prix} €',
+//                   '${logement.prix} CFA',
 //                   style: const TextStyle(
 //                     color: Colors.blue,
 //                     fontWeight: FontWeight.bold,

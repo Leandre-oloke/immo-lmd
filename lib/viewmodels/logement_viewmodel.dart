@@ -50,38 +50,89 @@ class LogementViewModel with ChangeNotifier {
   }
   
   /// Toggle favori (ajoute ou retire)
+  
   Future<void> toggleFavori(String logementId) async {
-    try {
-      final isFavori = _favorisIds.contains(logementId);
-      
-      // Mise à jour optimiste de l'interface
-      if (isFavori) {
-        _favorisIds.remove(logementId);
-        _favoris.removeWhere((l) => l.id == logementId);
-      } else {
-        _favorisIds.add(logementId);
-      }
-      
-      // Met à jour l'état isFavori dans toutes les listes
-      _updateLogementFavoriStatus(logementId, !isFavori);
-      
-      notifyListeners();
-      
-      // Mise à jour Firebase
-      await _favorisRepository.toggleFavori(logementId, isFavori);
-      
-      print('✅ Favori ${isFavori ? 'retiré' : 'ajouté'}: $logementId');
-      
-    } catch (e) {
-      print('❌ Erreur toggle favori: $e');
-      _errorMessage = 'Erreur: $e';
-      
-      // Annuler le changement optimiste en cas d'erreur
-      await loadFavoris();
-      notifyListeners();
-      rethrow;
+  print('═══════════════════════════════════════');
+  print('🔄 TOGGLE FAVORI APPELÉ');
+  print('═══════════════════════════════════════');
+  print('🏠 Logement ID: $logementId');
+ // print('👤 User ID: $_currentUserId');
+  print('📊 État _favorisIds AVANT: $_favorisIds');
+  print('✅ Est actuellement favori: ${_favorisIds.contains(logementId)}');
+  
+  try {
+    final isFavori = _favorisIds.contains(logementId);
+    
+    // Mise à jour optimiste de l'interface
+    if (isFavori) {
+      print('➖ Retrait du favori...');
+      _favorisIds.remove(logementId);
+      _favoris.removeWhere((l) => l.id == logementId);
+    } else {
+      print('➕ Ajout du favori...');
+      _favorisIds.add(logementId);
     }
+    
+    // Met à jour l'état isFavori dans toutes les listes
+    _updateLogementFavoriStatus(logementId, !isFavori);
+    
+    notifyListeners();
+    
+    print('🔥 Appel Firebase repository...');
+    // Mise à jour Firebase
+    await _favorisRepository.toggleFavori(logementId, isFavori);
+    
+    print('📊 État _favorisIds APRÈS: $_favorisIds');
+    print('✅ Toggle favori réussi: $logementId');
+    print('═══════════════════════════════════════');
+    
+  } catch (e) {
+    print('❌ ERREUR toggle favori: $e');
+    print('📍 Type erreur: ${e.runtimeType}');
+    print('═══════════════════════════════════════');
+    _errorMessage = 'Erreur: $e';
+    
+    // Annuler le changement optimiste en cas d'erreur
+    await loadFavoris();
+    notifyListeners();
+    rethrow;
   }
+}
+  // Future<void> toggleFavori(String logementId) async {
+  //   try {
+  //     final isFavori = _favorisIds.contains(logementId);
+      
+  //     // Mise à jour optimiste de l'interface
+  //     if (isFavori) {
+  //       _favorisIds.remove(logementId);
+  //       _favoris.removeWhere((l) => l.id == logementId);
+  //     } else {
+  //       _favorisIds.add(logementId);
+  //     }
+      
+  //     // Met à jour l'état isFavori dans toutes les listes
+  //     _updateLogementFavoriStatus(logementId, !isFavori);
+      
+  //     notifyListeners();
+      
+  //     // Mise à jour Firebase
+  //     await _favorisRepository.toggleFavori(logementId, isFavori);
+      
+  //     print('✅ Favori ${isFavori ? 'retiré' : 'ajouté'}: $logementId');
+      
+  //   } catch (e) {
+  //     print('❌ Erreur toggle favori: $e');
+  //     _errorMessage = 'Erreur: $e';
+      
+  //     // Annuler le changement optimiste en cas d'erreur
+  //     await loadFavoris();
+  //     notifyListeners();
+  //     rethrow;
+  //   }
+  // }
+
+
+
   
   /// Ajouter un favori
   Future<void> addFavorite(String logementId) async {

@@ -258,7 +258,7 @@ class _MesLogementsState extends State<MesLogements> {
                 ),
                 _buildStatItem(
                   title: "Revenu estimé",
-                  value: "${viewModel.ownerStats['estimatedRevenue']?.toStringAsFixed(0) ?? '0'}€/mois",
+                  value: "${viewModel.ownerStats['estimatedRevenue']?.toStringAsFixed(0) ?? '0'}CFA/mois",
                   color: Colors.purple,
                 ),
               ],
@@ -356,7 +356,7 @@ class _MesLogementsState extends State<MesLogements> {
                       ),
                     ),
                     Text(
-                      "${logement.prix.toStringAsFixed(0)}€/mois",
+                      "${logement.prix.toStringAsFixed(0)}CFA/mois",
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -625,7 +625,7 @@ class _MesLogementsState extends State<MesLogements> {
                       TextFormField(
                         controller: _prixController,
                         decoration: const InputDecoration(
-                          labelText: "Prix mensuel (€)*",
+                          labelText: "Prix mensuel (CFA)*",
                           hintText: "Ex: 750",
                           border: OutlineInputBorder(),
                         ),

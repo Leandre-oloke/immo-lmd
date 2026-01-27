@@ -61,7 +61,7 @@ class DetailsBottomSheet extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "${logement.prix} €/mois",
+                      "${logement.prix} CFA/mois",
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -128,7 +128,7 @@ class DetailsBottomSheet extends StatelessWidget {
                     _buildFeatureCard(
                       icon: Icons.bathtub,
                       title: "Salles de bain",
-                      value: "1", // À adapter si vous avez ce champ
+                      value: "1",
                     ),
                   ],
                 ),
@@ -202,6 +202,9 @@ class DetailsBottomSheet extends StatelessWidget {
                 // Boutons d'action
                 Consumer<LogementViewModel>(
                   builder: (context, viewModel, child) {
+                    // ✅ CORRECTION : Utiliser viewModel.isFavorite() au lieu de logement.isFavori
+                    final isFavorite = viewModel.isFavorite(logement.id);
+                    
                     return Column(
                       children: [
                         Row(
@@ -209,26 +212,45 @@ class DetailsBottomSheet extends StatelessWidget {
                             // Bouton Favoris
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: () {
-                                  viewModel.toggleFavori(logement.id); // ✅ CORRIGÉ : logement.id au lieu de logement
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        logement.isFavori 
-                                          ? 'Retiré des favoris' 
-                                          : 'Ajouté aux favoris',
+                                onPressed: () async {
+                                  try {
+                                    await viewModel.toggleFavori(logement.id);
+                                    
+                                    if (!context.mounted) return;
+                                    
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          isFavorite 
+                                            ? 'Retiré des favoris' 
+                                            : 'Ajouté aux favoris',
+                                        ),
+                                        duration: const Duration(seconds: 2),
+                                        backgroundColor: isFavorite ? Colors.orange : Colors.green,
                                       ),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
+                                    );
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Erreur: $e'),
+                                        backgroundColor: Colors.red,
+                                        duration: const Duration(seconds: 3),
+                                      ),
+                                    );
+                                  }
                                 },
                                 icon: Icon(
-                                  logement.isFavori ? Icons.favorite : Icons.favorite_border,
-                                  color: logement.isFavori ? Colors.red : null,
+                                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                                  color: isFavorite ? Colors.red : null,
                                 ),
-                                label: Text(logement.isFavori ? "Favori" : "Favoris"),
+                                label: Text(isFavorite ? "Retirer" : "Favoris"),
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 12),
+                                  side: BorderSide(
+                                    color: isFavorite ? Colors.red : Colors.grey,
+                                  ),
                                 ),
                               ),
                             ),
@@ -386,7 +408,6 @@ class DetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  // Méthode pour afficher les options de contact
   void _showContactOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -418,7 +439,6 @@ class DetailsBottomSheet extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Bouton Appeler
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
@@ -441,7 +461,6 @@ class DetailsBottomSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   
-                  // Bouton SMS
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () async {
@@ -470,14 +489,13 @@ class DetailsBottomSheet extends StatelessWidget {
               
               const SizedBox(height: 10),
               
-              // Bouton WhatsApp (optionnel)
               ElevatedButton.icon(
                 onPressed: () {
                   if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('WhatsApp bientôt disponible'),
-                      duration: const Duration(seconds: 2),
+                      duration: Duration(seconds: 2),
                     ),
                   );
                 },
